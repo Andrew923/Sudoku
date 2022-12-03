@@ -6,9 +6,14 @@ import random
 def start_onScreenStart(app):
     app.difficulty = 'easy'
     app.font = 'monospace'
+    app.showHints = True
+    app.wrongLabels = True
+    app.backtracking = True
+    app.saveBoard = False
+    app.saveBoardPath = "/solvedBoards/"
     start_makeButtons(app)
 
-def restart(app): #not really restart, just start
+def start(app): 
     app.enterMode = 'normal'
     app.win = False
     app.selection = app.selectNum = None
@@ -19,7 +24,7 @@ def restart(app): #not really restart, just start
     app.showLegals = (app.difficulty != 'easy')
     setActiveScreen('game')
 
-#for reading files
+#for reading files, from https://www.cs.cmu.edu/~112-3/notes/term-project.html
 def readFile(path):
     with open(path, "rt") as f:
         return f.read()
@@ -41,15 +46,20 @@ def loadBoard(app, difficulty):
             app.board[i][j] = n 
             j += 1
         i += 1
-    app.solution = solve(app.board)
+    app.solution = solve(app.board) if app.backtracking else None
     app.legals = getLegals(app.board)
     app.states.append(State(app.board, app.legals))
 
 def start_redrawAll(app):
     drawLogo(app)
+    drawExtras(app)
+    Button.drawButtons(app, __name__)
+
+def drawExtras(app):
     drawLabel(f"Difficulty: {app.difficulty.capitalize()}", app.width / 2,
               580, size=50, fill='royalBlue', bold=True, font=app.font)
-    Button.drawButtons(app, __name__)
+    drawLabel("Competition Mode", app.width / 2 - 80, 750, font=app.font,
+              size=18, fill='royalBlue', align='left')
 
 def drawLogo(app):
     width = app.width / 27
@@ -110,9 +120,20 @@ def start_makeButtons(app):
                         (i + 1) * app.width / 6, 700, 150, 50, size=26)
         button.onClick, button.args = changeDifficulty, (app, difficulties[i])
     play = Button(__name__, 'PLAY', app.width / 2, 460, 200, 100, bold=True, size=60)
-    play.onClick, play.args = restart, app
+    play.onClick, play.args = start, app
     loadBoard = Button(__name__, 'Load Board', app.width * 3 / 27, 50, 120, 40)
     loadBoard.onClick, loadBoard.args = load, app
+    competition = Button(__name__, ' ', app.width / 2 - 100, 750, 20, 20, fill=None,
+                          border='black', labelFill='black', borderWidth = 2)
+    competition.onClick, competition.args = competitionMode, app
+
+def competitionMode(app):
+    app.showHints = not app.showHints
+    app.wrongLabels = not app.wrongLabels
+    app.backtracking = not app.backtracking
+    for button in Button.buttons[__name__]:
+        if button.label == 'x': button.label = ' '
+        elif button.label == ' ': button.label = 'x'
 
 #load from file or graphically
 def load(app):

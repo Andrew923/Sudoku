@@ -1,8 +1,12 @@
-try: from cmu_cs3_graphics import *
-except: from cmu_graphics import *
+from cmu_graphics import *
 import copy
 from collections import defaultdict
-
+class Hint():
+    def __init__(self, hintCells, move='set', moveCells=None, values=None):
+        self.hintCells = hintCells
+        self.move = move
+        self.moveCells = moveCells
+        self.values = values
 class State(object):
     def __init__(self, board ,legals):
         self.board = copy.deepcopy(board)
@@ -70,15 +74,16 @@ class Button(object):
 class Message(object):
     message = None
 
-    def __init__(self, label):
+    def __init__(self, label, width = 220, height = 40):
+        self.width, self.height = width, height
         self.label = label
         self.opacity = 100
         Message.message = self        
 
     def draw(self, app):
         if self.opacity <= 0: return
-        x, y = 860, 50
-        drawBox(app, x, y, 220, 40,
+        x, y = 820, 70
+        drawBox(app, x, y, self.width, self.height,
                 border='black', opacity=self.opacity)
         drawLabel(self.label, x, y, size=14,
                   font=app.font,

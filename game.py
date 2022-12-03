@@ -2,6 +2,7 @@ from cmu_graphics import *
 from classes import *
 import math
 from solver import *
+from itertools import combinations
 
 def radiusEndpoint(x, y, r, theta):
     theta = math.radians(theta)
@@ -9,29 +10,31 @@ def radiusEndpoint(x, y, r, theta):
 
 def game_onScreenStart(app):
     app.rows = app.cols = 9
-    app.boardLeft = app.boardTop = 100
-    app.boardWidth = app.boardHeight = 600
+    app.boardLeft = app.width/10
+    app.boardTop = app.height/8
+    app.boardWidth = app.boardHeight = min(app.width, app.height) * 3 /4
     app.cellBorderWidth = 1
     app.board = [['0'] * app.cols for _ in range(app.rows)]
     app.controls = 0 # 0: standard, 1: kb, 2: mouse
     game_makeButtons(app)
     app.message = Message('Hello!')
+    app.hintCells = set()
 
 def game_makeButtons(app):
-    quit = Button(__name__, 'Quit', app.width * 3 / 27, 50, 120, 40)
+    quit = Button(__name__, 'Quit', app.width * 3/27, 50, 120, 40)
     quit.onClick, quit.args = setActiveScreen, 'start'
-    help = Button(__name__, 'Help', 860, 500, 120, 40)
+    help = Button(__name__, 'Help', app.width * 17/20, app.height * 5/8, 120, 40)
     help.onClick, help.args = setActiveScreen, 'help'
-    undoButton = Button(__name__, 'Undo', 70, 750, 70, 30)
+    undoButton = Button(__name__, 'Undo', 70, app.height * 15/16, 70, 30)
     undoButton.onClick, undoButton.args = undo, app
-    redoButton = Button(__name__, 'Redo', 170, 750, 70, 30)
+    redoButton = Button(__name__, 'Redo', 170, app.height * 15/16, 70, 30)
     redoButton.onClick, redoButton.args = redo, app
-    enableLegals = Button(__name__, 'x', 800, 750, 20, 20, fill=None,
+    enableLegals = Button(__name__, 'x', 800, app.height * 15/16, 20, 20, fill=None,
                           border='black', labelFill='black', borderWidth = 2)
     enableLegals.onClick, enableLegals.args = toggleLegals, app
-    singletons = Button(__name__, 'Singleton', 350, 750, 120, 30, size=14)
+    singletons = Button(__name__, 'Singleton', 350, app.height * 15/16, 120, 30, size=14)
     singletons.onClick, singletons.args = singleton, app
-    allSingletons = Button(__name__, 'All Singletons', 500, 750, 120, 30, size=14)
+    allSingletons = Button(__name__, 'All Singletons', 500, app.height * 15/16, 120, 30, size=14)
     allSingletons.onClick, allSingletons.args = singleton, (app, True)
     toggleMode = Button(__name__, 'Enter Mode: Normal',
                        860, 650, 210, 40)
@@ -45,8 +48,8 @@ def game_redrawAll(app):
               font=app.font, fill='dimGray')
     drawBoard(app)
     drawBoardBorder(app)
-    drawSelecting(app)
     Button.drawButtons(app, __name__)
+    drawSelecting(app)    
     drawButtonExtras(app)
     app.message.draw(app)
     drawTimer(app)
@@ -59,14 +62,14 @@ def drawTimer(app):
               size=54, font=app.font)
 
 def drawButtonExtras(app):
-    drawLabel("Show Legals", 820, 750, font=app.font,
+    drawLabel("Show Legals", 820, app.height * 15/16, font=app.font,
               size=18, fill='royalBlue', align='left')
 
 def drawWin(app):
     drawRect(0, 0, app.width, app.height, opacity=10)
-    drawRect(0, app.height / 3, app.width, app.height / 3,
+    drawRect(0, app.height/3, app.width, app.height/3,
              fill='skyBlue', opacity=30)
-    drawLabel('YOU WON', app.width / 2, app.height / 2,
+    drawLabel('YOU WON', app.width/2, app.height/2,
               font=app.font, fill='mediumTurquoise',
               size = 200, bold=True)
 
@@ -81,9 +84,9 @@ def drawBoardBorder(app):
     # draw the block outlines
     for row in range(3):
         for col in range(3):
-            drawRect(app.boardLeft + col * app.boardWidth / 3,
-                     app.boardTop + row * app.boardWidth / 3,
-                     app.boardWidth / 3, app.boardHeight / 3,
+            drawRect(app.boardLeft + col * app.boardWidth/3,
+                     app.boardTop + row * app.boardWidth/3,
+                     app.boardWidth/3, app.boardHeight/3,
                      fill=None, border='dimGray',
                      borderWidth = 2 * app.cellBorderWidth)
     drawRect(app.boardLeft, app.boardTop,app.boardWidth, app.boardHeight,
@@ -98,7 +101,7 @@ def drawSelecting(app):
         r = 80
         drawCircle(cx, cy, r + 20, opacity=45)
         for n in range(1, 10):
-            theta = 90 - (n - 1) * 360 / 9 #kinda like 9 numbers on clock
+            theta = 90 - (n - 1) * 360/9 #kinda like 9 numbers on clock
             x, y = radiusEndpoint(cx, cy, r, theta)
             #if number isn't legal
             fill = 'lightCyan' if str(n) in app.legals[row][col] else 'lightSalmon'
@@ -111,15 +114,7 @@ def drawSelecting(app):
 def drawCell(app, row, col):
     cellLeft, cellTop = getCellLeftTop(app, row, col)
     cellWidth, cellHeight = getCellSize(app)
-    #highlight color
-    if (row, col) == app.selection and app.states[0].board[row][col] == '0':
-        color = 'lightBlue'
-    elif (app.board[row][col] != '0' and
-        app.board[row][col] != app.solution[row][col]):
-        color = 'salmon'
-    else: color = None
-    if app.states[0].board[row][col] != '0':
-        color = 'darkGray'
+    color = getHighlight(app, row, col)
     #draws numbers in board
     if app.board[row][col] != '0':
         x, y = getCellMiddle(app, row, col)
@@ -133,6 +128,22 @@ def drawCell(app, row, col):
     drawRect(cellLeft, cellTop, cellWidth, cellHeight,
             fill=color, opacity=40)
 
+def getHighlight(app, row, col):
+    if (row, col) == app.selection and app.states[0].board[row][col] == '0':
+        color = 'lightBlue'
+    elif (app.wrongLabels and app.board[row][col] != '0' and
+        app.board[row][col] != app.solution[row][col]):
+        color = 'salmon'
+    elif (app.wrongLabels and len(app.legals[row][col]) >= 1 and
+          app.solution[row][col] not in app.legals[row][col]):
+        color = 'salmon'
+    elif (row, col) in app.hintCells:
+        color = 'plum'
+    else: color = None
+    if app.states[0].board[row][col] != '0':
+        color = 'darkGray'
+    return color
+
 def drawLegals(app, row, col):
     legals = app.legals[row][col]
     if legals == None or app.board[row][col] != '0': return
@@ -140,11 +151,11 @@ def drawLegals(app, row, col):
     cellWidth, cellHeight = getCellSize(app)
     for legal in legals:
         drow, dcol = legalToPosition(int(legal))
-        x, y = cellLeft + dcol * cellWidth / 4, cellTop + drow * cellHeight / 4
+        x, y = cellLeft + dcol * cellWidth/4, cellTop + drow * cellHeight/4
         drawLabel(legal, x, y)
 
 def legalToPosition(number):
-    row = math.ceil(number / 3)
+    row = math.ceil(number/3)
     col = (number - 1) % 3 + 1
     return row, col
 
@@ -152,14 +163,14 @@ def getCell(app, x, y):
     dx = x - app.boardLeft
     dy = y - app.boardTop
     cellWidth, cellHeight = getCellSize(app)
-    row = math.floor(dy / cellHeight)
-    col = math.floor(dx / cellWidth)
+    row = math.floor(dy/cellHeight)
+    col = math.floor(dx/cellWidth)
     if inBounds(app, row, col): return (row, col)
     else: return None
 
 def getCellSize(app):
-    cellWidth = app.boardWidth / app.cols
-    cellHeight = app.boardHeight / app.rows
+    cellWidth = app.boardWidth/app.cols
+    cellHeight = app.boardHeight/app.rows
     return (cellWidth, cellHeight) 
 
 def getCellLeftTop(app, row, col):
@@ -172,8 +183,8 @@ def getCellMiddle(app, row, col):
     cellWidth, cellHeight = getCellSize(app)
     cellLeft = app.boardLeft + col * cellWidth
     cellTop = app.boardTop + row * cellHeight
-    cx = cellLeft + cellWidth / 2
-    cy = cellTop + cellHeight / 2
+    cx = cellLeft + cellWidth/2
+    cy = cellTop + cellHeight/2
     return (cx, cy)
 
 #hover on cells
@@ -203,7 +214,7 @@ def game_onMouseDrag(app, mouseX, mouseY):
         r = (dx ** 2 + dy ** 2) ** 0.5
         theta = (90 + math.degrees(math.atan2(dy, dx))) % 360
         if 25 <= r <= 95:
-            app.selectNum = 1 + (math.floor((theta + 20) / 40) % 9)
+            app.selectNum = 1 + (math.floor((theta + 20)/40) % 9)
         elif r < 25:
             app.selectNum = 0
 
@@ -223,9 +234,7 @@ def game_onKeyPress(app, key):
     elif key == 'down': moveSelection(app, 1, 0)
     elif key == 'space':
         app.selecting = not app.selecting
-    elif key == 'escape':
-        app.message = Message('haha you need help')
-        setActiveScreen('help')
+    elif key == 'escape': setActiveScreen('help')
     elif key in '123456789' and app.selecting:
         app.selectNum = int(key)
         enterNum(app, *app.selection, app.selectNum)
@@ -233,13 +242,44 @@ def game_onKeyPress(app, key):
         app.selecting = False
     elif key == 'z': undo(app)
     elif key == 'y': redo(app)
-    elif key == 'r': 
-        restart(app)
-        setActiveScreen('start')
+    elif key == 'r': setActiveScreen('start')
     elif key == 's': singleton(app)
     elif key == 'S': singleton(app, everything=True)
     elif key == 'l': toggleEnterMode(app)
     elif key == 'L': toggleLegals(app)
+    elif key == 'h': hint1(app)
+    elif key == 'H': hint2(app)
+
+def hint1(app):
+    if not app.showHints: 
+        app.message = Message("Hints disabled in competition mode", 300)
+        return
+    hint = getHint(app.legals)
+    if hint == None: 
+        app.message = Message("No hints available", 240)
+        return
+    app.hintCells = hint.hintCells
+    app.message = Message("You're welcome")
+
+def hint2(app):
+    if not app.showHints: 
+        app.message = Message("Hints disabled in competition mode", 300)
+        return
+    hint = getHint(app.legals)
+    if hint == None: 
+        app.message = Message("No hints available", 240)
+        return
+    if hint.move == 'set':
+        row, col = hint.moveCells
+        enterNum(app, row, col, hint.values.pop(), mode='normal')
+        app.hintCells = {hint.hintCells}
+    elif hint.move == 'ban':
+        app.message = Message(f"Banned legals: {hint.values}", 240)
+        for row, col in hint.moveCells:
+            for legal in hint.values:
+                if legal in app.legals[row][col]:
+                    enterNum(app, row, col, legal, mode='legals')
+        app.hintCells = hint.hintCells
 
 def moveSelection(app, drow, dcol):
     app.selecting = False
@@ -266,11 +306,13 @@ def moveSelection(app, drow, dcol):
 def inBounds(app, row, col):
     return (0 <= row < app.rows) and (0 <= col < app.cols)
 
-def enterNum(app, row, col, number):
-    if app.enterMode == 'normal':
+def enterNum(app, row, col, number, mode=None):
+    app.hintCells = set() #clear hint
+    if mode == None: mode = app.enterMode
+    if mode == 'normal':
         app.board[row][col] = str(number)
         app.legals = getLegals(app.board)
-    elif app.enterMode == 'legals':
+    elif mode == 'legals':
         legals = app.legals[row][col]
         if str(number) in legals:
             app.legals[row][col] = legals - set([str(number)])
@@ -332,8 +374,51 @@ def singleton(app, everything = False):
         if not singleTonExists: 
             app.message = Message("No more singletons :(")
 
+def getHint(legals):
+    singlesHint = nakedSingles(legals)
+    if singlesHint != None: return singlesHint
+    for n in range(2, 5):
+        tuplesHint = nakedTuples(legals, n)
+        if tuplesHint != None: return tuplesHint
+
+def nakedSingles(legals):
+    for row in range(9):
+        for col in range(9):
+            if len(legals[row][col]) == 1:
+                cell = (row, col)
+                setValue = copy.copy(legals[row][col])
+                return Hint(cell, 'set', cell, setValue)
+
+def nakedTuples(legals, n):
+    for region in allRegionCoords():
+        for target in combinations(region, n):
+            targetLegals = [legals[row][col] for row, col in target]
+            if set() in targetLegals: continue
+            for legalCombination in combinations(['1', '2', '3', '4', '5', '6', '7', '8', '9'], n):
+                legalSet = set(legalCombination)
+                if set.union(*targetLegals) == legalSet:
+                    banCells = list(set(region) - set(target))
+                    bans = [legals[row][col] for row, col in banCells]
+                    if legalSet & set().union(*bans) == set(): continue
+                    return Hint(set(target), 'ban', banCells, legalCombination)
+
+def writeFile(path, contents): #from https://www.cs.cmu.edu/~112-3/notes/term-project.html
+    with open(path, "wt") as f:
+        f.write(contents)
+
 def checkWin(app):
-    if app.board == app.solution: app.win = True
+    if app.board == app.solution: 
+        app.win = True
+    if not app.backtracking:
+        if isSolved(app.board) and app.saveBoard:
+            path = app.saveBoardPath + app.difficulty + '.txt'
+            contents = ''
+            for row in range(9):
+                for col in range(9):
+                    contents += app.board[row][col] + ' '
+                contents += '\n'
+            writeFile(path, contents)
+            app.message = Message(f'Board saved')
 
 def game_onStep(app):
     if not app.win: app.counter += 1

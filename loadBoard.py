@@ -51,7 +51,7 @@ def loadBoard(app, path):
             app.board[i][j] = n 
             j += 1
         i += 1
-    app.solution = solve(app.board)
+    app.solution = solve(app.board) if app.backtracking else None
     app.legals = getLegals(app.board)
     app.states.append(State(app.board, app.legals))
 
