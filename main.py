@@ -13,13 +13,14 @@ def onResize(app):
     Button.buttons = defaultdict(list)
     start_makeButtons(app)
     game_makeButtons(app)
+    loadBoard_makeButtons(app)
 
 def onAppStart(app):
     app.difficulty = 'easy'
     app.font = 'monospace'
     app.showHints = app.wrongLabels = True
     app.saveBoard = False
-    app.saveBoardPath = "/solvedBoards/"
+    app.saveBoardPath = "solvedBoards/"
     app.stepsPerSecond = 120
 
 def main():

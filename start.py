@@ -146,3 +146,5 @@ def start_onMouseMove(app, mouseX, mouseY):
 def start_onMousePress(app, mouseX, mouseY):
     Button.checkClick(app, __name__, mouseX, mouseY)
 
+def start_onKeyPress(app, key):
+    if key == 'c': competitionMode(app)

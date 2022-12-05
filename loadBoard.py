@@ -10,16 +10,22 @@ def loadBoard_onAppStart(app):
     app.solution = app.board
     app.legals = [[set([str(n) for n in range(1, 10)])
                    for _ in range(9)] for _ in range(9)]
+
+def loadBoard_onScreenActivate(app):
     loadBoard_makeButtons(app)
 
 def loadBoard_makeButtons(app):
-    back = Button(__name__, 'Back', app.width * 3 / 27, 50, 120, 40)
+    back = Button(__name__, 'Back', app.width*3/27, app.height/16, 
+                  app.width*3/25, app.height/20)
     back.onClick, back.args = setActiveScreen, 'start'
-    load = Button(__name__, 'Load Game', 840, 250, 200, 50)
+    load = Button(__name__, 'Load Game', app.width*21/25,
+                  app.height*5/16, app.width/5, app.height/16)
     load.onClick, load.args = loadGame, app
-    filepath = Button(__name__, 'Enter Board Path', 840, 370, 200, 50)
+    filepath = Button(__name__, 'Enter Board Path', app.width*21/25, 
+                      app.height*37/80, app.width/5, app.height/16)
     filepath.onClick, filepath.args = getFilePath, app
-    clear = Button(__name__, 'Clear', app.width * 3 / 27, 750, 120, 40)
+    clear = Button(__name__, 'Clear', app.width * 3 / 27, 
+                   app.height*15/16, app.width*3/25, app.height/20)
     clear.onClick, clear.args = clearBoard, app
 
 def clearBoard(app):
@@ -36,7 +42,6 @@ def getFilePath(app):
     app.states, app.stateIndex = list(), 0
     try:
         loadBoard(app, path)
-        setActiveScreen('game')
     except FileNotFoundError:
         app.message = Message("Can't find file :(")
     except:
@@ -51,9 +56,7 @@ def loadBoard(app, path):
             app.board[i][j] = n 
             j += 1
         i += 1
-    app.solution = solve(app.board) if app.backtracking else None
-    app.legals = getLegals(app.board)
-    app.states.append(State(app.board, app.legals))
+    loadGame(app)
 
 def loadBoard_redrawAll(app):
     drawLabel('Load Board', 400, 50, size=52, bold=True,
@@ -164,5 +167,5 @@ def loadGame(app):
     app.solution = solve(app.board)
     app.legals = getLegals(app.board)
     app.states.append(State(app.board, app.legals))
-    app.showLegals = (app.difficulty != 'easy')
+    app.showLegals = True
     setActiveScreen('game')

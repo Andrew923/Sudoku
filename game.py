@@ -3,7 +3,7 @@ from classes import *
 import math
 from solver import *
 from itertools import combinations
-import time
+import time, sys
 
 def radiusEndpoint(x, y, r, theta):
     theta = math.radians(theta)
@@ -11,7 +11,7 @@ def radiusEndpoint(x, y, r, theta):
 
 def game_onScreenActivate(app):
     game_makeButtons(app)
-    app.startTime = time.time()
+    app.startTime = time.time() if app.startTime == None else app.startTime
 
 def game_onAppStart(app):
     app.rows = app.cols = 9
@@ -24,6 +24,7 @@ def game_onAppStart(app):
     game_makeButtons(app)
     app.message = Message('Hello!')
     app.hintCells = set()
+    app.startTime = None
 
 def game_makeButtons(app):
     quit = Button(__name__, 'Quit', app.width*3/27, app.height/16,
@@ -88,7 +89,7 @@ def drawWin(app):
              fill='skyBlue', opacity=30)
     drawLabel('YOU WON', app.width/2, app.height/2,
               font=app.font, fill='mediumTurquoise',
-              size = 200 + 10 * ((5 * app.counter // app.stepsPerSecond) % 2), bold=True)
+              size = 200 + 10 * ((7 * app.counter // app.stepsPerSecond) % 2), bold=True)
 
 def drawBoard(app):
     for row in range(app.rows):
@@ -266,6 +267,7 @@ def game_onKeyPress(app, key):
     elif key == 'L': toggleLegals(app)
     elif key == 'h': hint1(app)
     elif key == 'H': hint2(app)
+    elif key == 'p': saveBoard(app)
 
 def moveSelection(app, drow, dcol):
     app.selecting = False
@@ -293,6 +295,7 @@ def inBounds(app, row, col):
     return (0 <= row < app.rows) and (0 <= col < app.cols)
 
 def enterNum(app, row, col, number, mode=None):
+    if app.win: return
     app.hintCells = set() #clear hint
     if mode == None: mode = app.enterMode
     if mode == 'normal':
@@ -307,8 +310,7 @@ def enterNum(app, row, col, number, mode=None):
     #die if wrong move in comp mode
     if (not app.wrongLabels and
         app.board[row][col] != app.solution[row][col]):
-        setActiveScreen('start')
-        app.message = Message('Wrong.')
+        sys.exit('Wrong.')
     #if we undid previously and are doing new moves
     if app.stateIndex != len(app.states) - 1:
         app.states = app.states[:app.stateIndex + 1]
@@ -353,6 +355,9 @@ def changeControls(app):
             button.label = f"Controls: {controls[app.controls]}"
 
 def singleton(app, everything = False):
+    if not app.showHints:
+        app.message = Message("No auto-singletons in competition mode", 325)
+        return
     singleTonExists = True
     while singleTonExists:
         singleTonExists = False
@@ -432,15 +437,21 @@ def checkWin(app):
     if app.board == app.solution: 
         app.win = True
         app.winTime = int(time.time() - app.startTime)
-        if app.saveBoard:
-                path = app.saveBoardPath + app.difficulty + '.txt'
-                contents = ''
-                for row in range(9):
-                    for col in range(9):
-                        contents += app.board[row][col] + ' '
-                    contents += '\n'
-                writeFile(path, contents)
-                app.message = Message(f'Board saved')
+        if not app.showHints:
+            try:
+                saveBoard(app)
+            except:
+                app.message = Message('Board not saved :(')
+
+def saveBoard(app):
+    path = app.saveBoardPath + 'solved.txt'
+    contents = ''
+    for row in range(9):
+        for col in range(9):
+            contents += app.board[row][col] + ' '
+        contents += '\n'
+    writeFile(path, contents)
+    app.message = Message('Board saved')
 
 def game_onStep(app):
     app.counter += 1
