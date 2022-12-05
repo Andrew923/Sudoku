@@ -82,7 +82,7 @@ class Message(object):
 
     def draw(self, app):
         if self.opacity <= 0: return
-        x, y = 820, 70
+        x, y = app.width*41/50, app.height*7/80
         drawBox(app, x, y, self.width, self.height,
                 border='black', opacity=self.opacity)
         drawLabel(self.label, x, y, size=14,

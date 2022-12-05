@@ -4,7 +4,7 @@ from solver import *
 from game import getCell, getCellMiddle, getCellSize, getCellLeftTop, radiusEndpoint
 from start import readFile
 
-def loadBoard_onScreenStart(app):
+def loadBoard_onAppStart(app):
     app.selection = app.selectNum = None
     app.selecting = False
     app.solution = app.board

@@ -4,25 +4,24 @@ import numpy as np
 #solve sudoku board
 def solve(board):
     legals = getLegals(board)
-    row, col = leastLegals(legals)
 
-    stack = list()
-    stack.append([copy.deepcopy(board), row, col, legals[row][col]])
+    def recurse(board):
+        if isSolved(board): return board
 
-    while stack:
-        board, row, col = stack[-1][:-1]
-        move = stack[-1][-1].pop()
-        if stack[-1][-1] == set(): stack.pop()
-        board[row][col] = move
-
-        if isSolved(board): return board #done if done
-
-        #else keep lookin
-        legals = getLegals(board)
-        nextRow, nextCol = leastLegals(legals)
-        if legals[nextRow][nextCol] != set():
-            stack.append([copy.deepcopy(board), nextRow,
-                          nextCol, legals[nextRow][nextCol]])
+        row, col = leastLegals(legals)
+        if legals[row][col] == set(): return None
+        for num in copy.copy(legals[row][col]):
+            board[row][col] = num
+            updateLegals(legals, row, col, num)
+            
+            result = recurse(board)
+            if result != None: return result
+            
+            board[row][col] = '0'
+            undoUpdate(legals, row, col, board)
+        return None
+    
+    return recurse(copy.deepcopy(board))
 
 def leastLegals(legals):
     minRow, minCol = 0, 0
@@ -46,10 +45,29 @@ def getLegals(board):
     for row in range(9):
         for col in range(9):
             if board[row][col] == '0':
-                legals[row][col] = (set(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
+                legals[row][col] = ({'1', '2', '3', '4', '5', '6', '7', '8', '9'}
                                     - getRegion(board, row, col))
     return legals
 
+def updateLegals(legals, lastRow, lastCol, n):
+    #starting row and col for block
+    row, col = 3 * math.floor(lastRow / 3), 3 * math.floor(lastCol / 3)
+    for i in range(9):
+        legals[lastRow][i].discard(n) #row
+        legals[i][lastCol].discard(n) #col
+        drow, dcol = i // 3, i % 3
+        legals[row + drow][col + dcol].discard(n) #block
+    legals[lastRow][lastCol] = set() #value that u set
+
+def undoUpdate(legals, lastRow, lastCol, board):
+    startRow, startCol = 3 * math.floor(lastRow / 3), 3 * math.floor(lastCol / 3)
+    allLegals = {'1', '2', '3', '4', '5', '6', '7', '8', '9'}
+    for i in range(9):
+        drow, dcol = i // 3, i % 3
+        for row, col in [(lastRow, i), (i, lastCol), (startRow + drow, startCol + dcol)]:
+            if board[row][col] != '0': legals[row][col] = set()
+            else: legals[row][col] = allLegals - getRegion(board, row, col)
+        
 #no longer used but in case future stuff
 def isLegalMove(board, row, col):
     rows, cols = len(board), len(board[0])

@@ -1,7 +1,7 @@
 from cmu_graphics import *
 from classes import *
 
-def help_onScreenStart(app):
+def help_onAppStart(app):
     app.keyboardUrl = 'images/keyboard-layout.jpg'
     help_makeButtons(app)
 
