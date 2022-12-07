@@ -8,13 +8,13 @@ def loadBoard_onAppStart(app):
     app.selection = app.selectNum = None
     app.selecting = False
     app.solution = app.board
-    app.legals = [[set([str(n) for n in range(1, 10)])
-                   for _ in range(9)] for _ in range(9)]
 
 def loadBoard_onScreenActivate(app):
     app.startTime = None
     Button.buttons[__name__] = list()
     loadBoard_makeButtons(app)
+    app.legals = [[set([str(n) for n in range(1, 10)])
+                   for _ in range(9)] for _ in range(9)]
 
 def loadBoard_makeButtons(app):
     back = Button(__name__, 'Back', app.width*3/27, app.height/16, 
@@ -61,13 +61,13 @@ def loadBoard(app, path):
     loadGame(app)
 
 def loadBoard_redrawAll(app):
-    drawLabel('Load Board', 400, 50, size=52, bold=True,
+    drawLabel('Load Board', app.width*2/5, app.height/16, size=52, bold=True,
               font=app.font, fill='dimGray')
     drawBoard(app)
     drawBoardBorder(app)
     drawSelecting(app)
     Button.drawButtons(app, __name__)
-    drawLabel('OR', 840, 310, font=app.font, size=52)
+    drawLabel('OR', app.width*21/25, app.height*31/80, font=app.font, size=52)
     app.message.draw(app)
 
 def drawBoard(app):

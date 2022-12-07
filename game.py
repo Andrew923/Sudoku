@@ -60,7 +60,7 @@ def game_makeButtons(app):
     hint = Button(__name__, 'Hint', app.width*43/50, app.height*17/32,
                   app.width*3/25, app.height/20)
     hint.onClick, hint.args = hint1, app
-    help = Button(__name__, 'Help', app.width*43/50, app.height*14/32, 
+    help = Button(__name__, 'Controls', app.width*43/50, app.height*14/32, 
                   app.width*3/25, app.height/20)
     help.onClick, help.args = setActiveScreen, 'help'
 
@@ -329,6 +329,7 @@ def enterNum(app, row, col, number, mode=None):
     checkWin(app)
 
 def undo(app):
+    app.hintCells = set() #clear hint
     if app.stateIndex <= 0: 
         app.message = Message("Can't undo anymore!")
         return
@@ -337,6 +338,7 @@ def undo(app):
     app.message = Message("Undid move")
 
 def redo(app):
+    app.hintCells = set() #clear hint
     if app.stateIndex == len(app.states) - 1:
         app.message = Message("Can't redo anymore!")
         return

@@ -21,6 +21,7 @@ def onResize(app):
     start_makeButtons(app)
     game_makeButtons(app)
     loadBoard_makeButtons(app)
+    help_makeButtons(app)
 
 def onAppStart(app):
     app.difficulty = 'easy'
