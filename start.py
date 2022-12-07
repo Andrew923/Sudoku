@@ -4,6 +4,7 @@ from solver import *
 import random
 
 def start_onScreenActivate(app):
+    Button.buttons[__name__] = list()
     start_makeButtons(app)
 
 def start(app): 

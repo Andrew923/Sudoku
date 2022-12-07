@@ -6,6 +6,7 @@ from itertools import combinations
 import time, sys
 
 def game_onScreenActivate(app):
+    Button.buttons[__name__] = list()
     game_makeButtons(app)
     app.startTime = time.time() if app.startTime == None else app.startTime
     app.hintCells = set()
@@ -158,6 +159,9 @@ def getHighlight(app, row, col):
         color = 'salmon'
     elif (app.wrongLabels and len(app.legals[row][col]) >= 1 and
           app.solution[row][col] not in app.legals[row][col]):
+        color = 'salmon'
+    elif (app.wrongLabels and len(app.legals[row][col]) == 0 and
+          app.board[row][col] == '0'):
         color = 'salmon'
     elif (row, col) == app.selection and app.states[0].board[row][col] == '0':
         color = 'lightBlue'

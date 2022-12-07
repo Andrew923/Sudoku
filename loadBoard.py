@@ -13,6 +13,7 @@ def loadBoard_onAppStart(app):
 
 def loadBoard_onScreenActivate(app):
     app.startTime = None
+    Button.buttons[__name__] = list()
     loadBoard_makeButtons(app)
 
 def loadBoard_makeButtons(app):
