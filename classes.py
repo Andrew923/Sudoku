@@ -7,6 +7,7 @@ class Hint():
         self.move = move
         self.moveCells = moveCells
         self.values = values
+
 class State(object):
     def __init__(self, board ,legals):
         self.board = copy.deepcopy(board)
@@ -69,8 +70,6 @@ class Button(object):
                 if isinstance(button.args, tuple):
                     button.onClick(*button.args)
                 else: button.onClick(button.args)
-                
-
 class Message(object):
     message = None
 
@@ -89,7 +88,6 @@ class Message(object):
                   font=app.font,
                   opacity=self.opacity)
         self.opacity -= 2
-
 
 #very lengthy, but makes rounded edges
 def drawBox(app, x, y, width, height, **kwargs):

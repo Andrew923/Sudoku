@@ -12,6 +12,7 @@ def loadBoard_onAppStart(app):
                    for _ in range(9)] for _ in range(9)]
 
 def loadBoard_onScreenActivate(app):
+    app.startTime = None
     loadBoard_makeButtons(app)
 
 def loadBoard_makeButtons(app):

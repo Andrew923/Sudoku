@@ -5,6 +5,13 @@ from help import *
 from loadBoard import *
 from collections import defaultdict
 
+#Extra Stuff:
+#1. Hopefully the UI doesn't look terrible; you can see buttons
+#   and messages in classes.py
+#2. I think the backtracker is decent? idk I tried my best;
+#   all the testing can bee seen in test.ipynb
+#3. added X-Wing hint generation (ctrl f xwing in game.py)
+
 #reload buttons when resize
 def onResize(app):
     app.boardLeft = app.width/10

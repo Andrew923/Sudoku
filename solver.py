@@ -1,5 +1,4 @@
 import math, copy
-import numpy as np
 
 #solve sudoku board
 def solve(board):
@@ -67,20 +66,6 @@ def undoUpdate(legals, lastRow, lastCol, board):
         for row, col in [(lastRow, i), (i, lastCol), (startRow + drow, startCol + dcol)]:
             if board[row][col] != '0': legals[row][col] = set()
             else: legals[row][col] = allLegals - getRegion(board, row, col)
-        
-#no longer used but in case future stuff
-def isLegalMove(board, row, col):
-    rows, cols = len(board), len(board[0])
-    #check nonzero values in rows for duplicates
-    notZero = [v for v in getRow(board, row) if v != '0']
-    if len(notZero) != len(set(notZero)): return False
-    #check nonzero values in cols for duplicates
-    notZero = [v for v in getCol(board, col) if v != '0']
-    if len(notZero) != len(set(notZero)): return False
-    #check blocks
-    block = [v for v in getBlock(board, row, col) if v != '0']
-    if len(block) != len(set(block)): return False
-    return True
 
 def getRow(board, row):
     return board[row]

@@ -5,13 +5,10 @@ from solver import *
 from itertools import combinations
 import time, sys
 
-def radiusEndpoint(x, y, r, theta):
-    theta = math.radians(theta)
-    return int(x + r*math.cos(theta)), int(y - r*math.sin(theta))
-
 def game_onScreenActivate(app):
     game_makeButtons(app)
     app.startTime = time.time() if app.startTime == None else app.startTime
+    app.hintCells = set()
 
 def game_onAppStart(app):
     app.rows = app.cols = 9
@@ -23,16 +20,13 @@ def game_onAppStart(app):
     app.controls = 0 # 0: standard, 1: kb, 2: mouse
     game_makeButtons(app)
     app.message = Message('Hello!')
-    app.hintCells = set()
     app.startTime = None
 
+#kind of long sadly but there are many buttons
 def game_makeButtons(app):
     quit = Button(__name__, 'Quit', app.width*3/27, app.height/16,
                   app.width*3/25, app.height/20)
     quit.onClick, quit.args = setActiveScreen, 'start'
-    help = Button(__name__, 'Help', app.width*17/20,
-                  app.height*5/8, app.width*3/25, app.height/20)
-    help.onClick, help.args = setActiveScreen, 'help'
     undoButton = Button(__name__, 'Undo', app.width*7/100,
                         app.height*15/16, app.width*7/100, app.height*3/80)
     undoButton.onClick, undoButton.args = undo, app
@@ -52,13 +46,22 @@ def game_makeButtons(app):
                            app.height*3/80, size=14)
     allSingletons.onClick, allSingletons.args = singleton, (app, True)
     toggleMode = Button(__name__, 'Enter Mode: Normal',
-                       app.width*43/50, app.height*13/16,
+                       app.width*43/50, app.height*26/32,
                        app.width*21/100, app.height/20)
     toggleMode.onClick, toggleMode.args = toggleEnterMode, app
     controls = Button(__name__, 'Controls: Standard',
-                      app.width*43/50, app.height*57/80, 
+                      app.width*43/50, app.height*23/32, 
                       app.width*21/100, app.height/20)
     controls.onClick, controls.args = changeControls, app
+    bigHint = Button(__name__, 'Big hint', app.width*43/50, app.height*20/32,
+                     app.width*3/25, app.height/20)
+    bigHint.onClick, bigHint.args = hint2, app
+    hint = Button(__name__, 'Hint', app.width*43/50, app.height*17/32,
+                  app.width*3/25, app.height/20)
+    hint.onClick, hint.args = hint1, app
+    help = Button(__name__, 'Help', app.width*43/50, app.height*14/32, 
+                  app.width*3/25, app.height/20)
+    help.onClick, help.args = setActiveScreen, 'help'
 
 def game_redrawAll(app):
     drawLabel('Sudoku!', app.width*2/5, app.height/16, size=52, bold=True,
@@ -76,8 +79,8 @@ def drawTimer(app):
     if app.win: seconds = app.winTime
     else: seconds = int(time.time() - app.startTime)
     minutes = seconds // 60
-    drawLabel(f"{int(minutes)}:{str(seconds % 60).zfill(2)}", app.width*43/50, 150,
-              size=54, font=app.font)
+    drawLabel(f"{int(minutes)}:{str(seconds % 60).zfill(2)}", app.width*43/50,
+              app.height*8/32, size=54, font=app.font)
 
 def drawButtonExtras(app):
     drawLabel("Show Legals", app.width*4/5 + 15, app.height*15/16, font=app.font,
@@ -128,6 +131,9 @@ def drawSelecting(app):
             drawLabel(n, x, y, font=app.font, size=26,
                       fill=fill, bold=True)
 
+def radiusEndpoint(x, y, r, theta):
+    theta = math.radians(theta)
+    return int(x + r*math.cos(theta)), int(y - r*math.sin(theta))
 
 def drawCell(app, row, col):
     cellLeft, cellTop = getCellLeftTop(app, row, col)
@@ -375,23 +381,23 @@ def hint1(app):
     if not app.showHints: 
         app.message = Message("Hints disabled in competition mode", 300)
         return
-    hint = getHint(app.legals)
+    hint = getHint(app, app.legals)
     if hint == None: 
         app.message = Message("No hints available", 240)
         return
     app.hintCells = hint.hintCells if hint.move == 'ban' else {hint.hintCells}
-    app.message = Message("You're welcome")
 
 def hint2(app):
     if not app.showHints: 
         app.message = Message("Hints disabled in competition mode", 300)
         return
-    hint = getHint(app.legals)
+    hint = getHint(app, app.legals)
     if hint == None: 
         app.message = Message("No hints available", 240)
         return
     if hint.move == 'set':
         row, col = hint.moveCells
+        app.message = Message(f"Filled in ({row}, {col})!")
         enterNum(app, row, col, hint.values.pop(), mode='normal')
         app.hintCells = {hint.hintCells}
     elif hint.move == 'ban':
@@ -402,12 +408,24 @@ def hint2(app):
                     enterNum(app, row, col, legal, mode='legals')
         app.hintCells = hint.hintCells
 
-def getHint(legals):
+def getHint(app, legals):
     singlesHint = nakedSingles(legals)
-    if singlesHint != None: return singlesHint
+    if singlesHint != None: 
+        app.message = Message('Singleton hint!')
+        return singlesHint
     for n in range(2, 5):
         tuplesHint = nakedTuples(legals, n)
-        if tuplesHint != None: return tuplesHint
+        if tuplesHint != None: 
+            app.message = Message('Naked tuples here!')
+            return tuplesHint
+    xWingHint = xWing(legals)
+    if xWingHint != None:
+        app.message = Message('X-Wing!!')
+        return xWingHint
+    sidewaysXWing = xWingCols(legals)
+    if sidewaysXWing != None:
+        app.message = Message('X-Wing!!')
+        return sidewaysXWing
 
 def nakedSingles(legals):
     for row in range(9):
@@ -428,6 +446,47 @@ def nakedTuples(legals, n):
                 bans = [legals[row][col] for row, col in banCells]
                 if legalSet & set().union(*bans) == set(): continue
                 return Hint(set(target), 'ban', banCells, legalSet)
+
+#strategy from https://www.sudokuwiki.org/X_Wing_Strategy
+def xWing(legals):
+    for legal in {'1', '2', '3', '4', '5', '6', '7', '8', '9'}:
+        for startRow in range(9):
+            cols = legalCols(getRow(legals, startRow), legal) #cols with naked double
+            if len(cols) == 2:
+                for endRow in range(startRow + 1, 9):
+                    if legalCols(getRow(legals, endRow), legal) == cols:
+                        startCol, endCol = cols
+                        xWingCells = [(row, col) for row in [startRow, endRow] for col in [startCol, endCol]]
+                        banCells = list()
+                        #ban cells in the columns of the x wing that have the legal
+                        for row, col in ([(row, startCol) for row in range(9) if row not in [startRow, endRow]] +
+                                         [(row, endCol) for row in range(9) if row not in [startRow, endRow]]):
+                            if legal in legals[row][col]: banCells.append((row, col))
+                        if banCells != []: 
+                            return Hint(xWingCells, 'ban', banCells, [legal])
+
+def legalCols(rowCells, legal):
+    return [col for col in range(9) if legal in rowCells[col]]
+
+#above xwing checks rows, this checks cols
+def xWingCols(legals):
+    for legal in {'1', '2', '3', '4', '5', '6', '7', '8', '9'}:
+        for startCol in range(9):
+            rows = legalRows(getCol(legals, startCol), legal) #cols with naked double
+            if len(rows) == 2:
+                for endCol in range(startCol + 1, 9):
+                    if legalRows(getCol(legals, endCol), legal) == rows:
+                        startRow, endRow = rows
+                        xWingCells = [(row, col) for row in [startRow, endRow] for col in [startCol, endCol]]
+                        banCells = list()
+                        for row, col in ([(startRow, col) for col in range(9) if col not in [startCol, endCol]] +
+                                         [(endRow, col) for col in range(9) if col not in [startCol, endCol]]):
+                            if legal in legals[row][col]: banCells.append((row, col))
+                        if banCells != []: 
+                            return Hint(xWingCells, 'ban', banCells, [legal])
+
+def legalRows(colCells, legal):
+    return [row for row in range(9) if legal in colCells[row]]
 
 def writeFile(path, contents): #from https://www.cs.cmu.edu/~112-3/notes/term-project.html
     with open(path, "wt") as f:

@@ -54,7 +54,10 @@ def drawOtherControls(app):
               "S: Play all singletons",
               "l: Toggle entering mode",
               "L:  Toggle legals",
-              "r: Restart"]
+              "r: Restart",
+              "h: Get hint",
+              "H: Play hint",
+              "C: toggle control scheme"]
     for i in range(len(labels)):
         drawLabel(labels[i], left, startY + 30 * (i + 1), size=18,
                   font=app.font, align='left')
